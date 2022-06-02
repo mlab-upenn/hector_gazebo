@@ -27,34 +27,40 @@ find_package(sensor_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(rmw_implementation_cmake REQUIRED)
+find_package(gazebo REQUIRED)
+find_package(gazebo_ros REQUIRED)
 
 ## Find gazebo
-if(POLICY CMP0054)
-  cmake_policy(SET CMP0054 NEW)
-endif()
-find_package(gazebo REQUIRED)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
-include_directories(${GAZEBO_INCLUDE_DIRS})
-link_directories(${GAZEBO_LIBRARY_DIRS})
+# if(POLICY CMP0054)
+#  cmake_policy(SET CMP0054 NEW)
+# endif()
+# find_package(gazebo REQUIRED)
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
+# include_directories(${GAZEBO_INCLUDE_DIRS})
+# link_directories(${GAZEBO_LIBRARY_DIRS})
 
 ## Find Boost
 # find_package(Boost REQUIRED COMPONENTS thread)
 # include_directories(${Boost_INCLUDE_DIRS})
 
 ## Set includes
-set(INCLUDE_DIRS include 
-    ${sensor_msgs_INCLUDE_DIRS}
-    ${rclcpp_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_BINARY_DIR}/srv
-)
-include_directories(${INCLUDE_DIRS})
+#set(INCLUDE_DIRS include 
+#   ${sensor_msgs_INCLUDE_DIRS}
+#    ${rclcpp_INCLUDE_DIRS}
+#    ${CMAKE_CURRENT_BINARY_DIR}/srv
+#)
+#include_directories(${INCLUDE_DIRS})
 
 set(LIBS
+    rclcpp
+    std_msgs
+    std_srvs
     geographic_msgs 
     geometry_msgs
+    nav_msgs
     sensor_msgs
-    std_msgs
-    rclcpp
+    tf2
+    gazebo_ros
 )
 
 #######################################
@@ -84,45 +90,51 @@ set(HECTOR_GAZEBO_ROS_PLUGINS_LIST "")
 # add_library(gazebo_ros_force_based_move src/gazebo_ros_force_based_move.cpp)
 # target_link_libraries(gazebo_ros_force_based_move ${Boost_LIBRARIES} ${GAZEBO_LIBRARIES} ${catkin_LIBRARIES})
 
-add_library(hector_gazebo_reset_plugin src/reset_plugin.cpp)
-target_link_libraries(hector_gazebo_reset_plugin ${GAZEBO_LIBRARIES})
-list(APPEND HECTOR_GAZEBO_ROS_PLUGINS_LIST hector_gazebo_reset_plugin)
-ament_target_dependencies(hector_gazebo_reset_plugin ${LIBS})
+#add_library(hector_gazebo_reset_plugin src/reset_plugin.cpp)
+##target_link_libraries(hector_gazebo_reset_plugin ${GAZEBO_LIBRARIES})
+#list(APPEND HECTOR_GAZEBO_ROS_PLUGINS_LIST hector_gazebo_reset_plugin)
+#ament_target_dependencies(hector_gazebo_reset_plugin ${LIBS})
 
-add_library(hector_gazebo_ros_imu src/gazebo_ros_imu.cpp)
-target_link_libraries(hector_gazebo_ros_imu ${Boost_LIBRARIES} ${GAZEBO_LIBRARIES})
-list(APPEND HECTOR_GAZEBO_ROS_PLUGINS_LIST hector_gazebo_ros_imu)
-ament_target_dependencies(hector_gazebo_ros_imu ${LIBS})
+#add_library(hector_gazebo_ros_imu src/gazebo_ros_imu.cpp)
+##target_link_libraries(hector_gazebo_ros_imu ${Boost_LIBRARIES} ${GAZEBO_LIBRARIES})
+#list(APPEND HECTOR_GAZEBO_ROS_PLUGINS_LIST hector_gazebo_ros_imu)
+#ament_target_dependencies(hector_gazebo_ros_imu ${LIBS})
+#target_link_libraries(hector_gazebo_ros_imu rosidl_get_typesupport_target())
 
-add_library(hector_gazebo_ros_magnetic src/gazebo_ros_magnetic.cpp)
-target_link_libraries(hector_gazebo_ros_magnetic ${GAZEBO_LIBRARIES})
-list(APPEND HECTOR_GAZEBO_ROS_PLUGINS_LIST hector_gazebo_ros_magnetic)
-ament_target_dependencies(hector_gazebo_ros_magnetic ${LIBS})
+#add_library(hector_gazebo_ros_magnetic src/gazebo_ros_magnetic.cpp)
+##target_link_libraries(hector_gazebo_ros_magnetic ${GAZEBO_LIBRARIES})
+#list(APPEND HECTOR_GAZEBO_ROS_PLUGINS_LIST hector_gazebo_ros_magnetic)
+#ament_target_dependencies(hector_gazebo_ros_magnetic ${LIBS})
 
-add_library(hector_gazebo_ros_gps src/gazebo_ros_gps.cpp)
-target_link_libraries(hector_gazebo_ros_gps ${GAZEBO_LIBRARIES})
+add_library(hector_gazebo_ros_gps SHARED src/gazebo_ros_gps.cpp)
+target_include_directories(hector_gazebo_ros_gps PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>)
 list(APPEND HECTOR_GAZEBO_ROS_PLUGINS_LIST hector_gazebo_ros_gps)
 ament_target_dependencies(hector_gazebo_ros_gps ${LIBS})
+#message(rosidl_get_typesupport_targets())
+#target_link_libraries(hector_gazebo_ros_gps rosidl_get_typesupport_targets())
+target_link_libraries(hector_gazebo_ros_gps "${PROJECT_NAME}__rosidl_typesupport_cpp")
 
-add_library(hector_gazebo_ros_sonar src/gazebo_ros_sonar.cpp)
-target_link_libraries(hector_gazebo_ros_sonar ${GAZEBO_LIBRARIES})
-list(APPEND HECTOR_GAZEBO_ROS_PLUGINS_LIST hector_gazebo_ros_sonar)
-ament_target_dependencies(hector_gazebo_ros_sonar ${LIBS})
+#add_library(hector_gazebo_ros_sonar src/gazebo_ros_sonar.cpp)
+##target_link_libraries(hector_gazebo_ros_sonar ${GAZEBO_LIBRARIES})
+#list(APPEND HECTOR_GAZEBO_ROS_PLUGINS_LIST hector_gazebo_ros_sonar)
+#ament_target_dependencies(hector_gazebo_ros_sonar ${LIBS})
 
 # add_library(hector_servo_plugin src/servo_plugin.cpp)
 # target_link_libraries(hector_servo_plugin ${Boost_LIBRARIES} ${GAZEBO_LIBRARIES} ${catkin_LIBRARIES})
 
 
 # Connect targets with locally defined messages
-get_available_rmw_implementations(rmw_implementations2)
-foreach(rmw_implementation ${rmw_implementations2})
-  find_package("${rmw_implementation}" REQUIRED)
-  get_rmw_typesupport(typesupport_impls "${rmw_implementation}" LANGUAGE "cpp")
-  foreach(typesupport_impl ${typesupport_impls})
-    rosidl_target_interfaces(hector_gazebo_ros_imu ${PROJECT_NAME} ${typesupport_impl})
-    rosidl_target_interfaces(hector_gazebo_ros_gps ${PROJECT_NAME} ${typesupport_impl})
-  endforeach()
-endforeach()
+#get_available_rmw_implementations(rmw_implementations2)
+#foreach(rmw_implementation ${rmw_implementations2})
+#  find_package("${rmw_implementation}" REQUIRED)
+#  get_rmw_typesupport(typesupport_impls "${rmw_implementation}" LANGUAGE "cpp")
+#  foreach(typesupport_impl ${typesupport_impls})
+#    rosidl_target_interfaces(hector_gazebo_ros_imu ${PROJECT_NAME} ${typesupport_impl})
+#    rosidl_target_interfaces(hector_gazebo_ros_gps ${PROJECT_NAME} ${typesupport_impl})
+#  endforeach()
+#endforeach()
 
 # #############
 # ## Install ##
